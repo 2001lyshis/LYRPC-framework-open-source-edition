@@ -1,5 +1,7 @@
 package rpc.core.common.annotation;
 
+import rpc.core.common.context.RpcContext;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -13,5 +15,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE,ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RpcService {
-    String ServiceName() default "";
+    String providerName() default RpcContext.DEFAULT_PROVIDER_NAME;
 }

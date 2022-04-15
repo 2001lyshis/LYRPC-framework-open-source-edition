@@ -8,7 +8,7 @@ import com.alibaba.nacos.common.utils.ConcurrentHashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rpc.core.common.entity.RpcContext;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.enumeration.RpcError;
 import rpc.core.common.excption.RpcException;
 

@@ -4,6 +4,8 @@ import io.netty.handler.timeout.IdleStateEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rpc.core.common.context.HandlerContext;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.entity.RpcResponse;
 import rpc.core.handler.RpcSeverHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,18 +16,12 @@ import rpc.core.common.entity.RpcRequest;
 import rpc.core.common.factory.SingletonFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
 
 public class NettyServerHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
-    private final RpcSeverHandler requestHandler;
-
-    public NettyServerHandler() {
-        this.requestHandler = SingletonFactory.getInstance(RpcSeverHandler.class);
-
-    }
-
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcRequest rpcRequest) throws Exception {
@@ -34,11 +30,15 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<RpcRequest> 
                 logger.info("Client heart beating..");
                 return;
             }
-
             // logger.info("service get rpc request :{}", rpcRequest.getRequestId());
+            HandlerContext handlerContext = new HandlerContext();
+            handlerContext.setChannel(ctx.channel());
+            handlerContext.setServiceName(rpcRequest.getInterfaceName());
+            handlerContext.setLocalAddress((InetSocketAddress) ctx.channel().localAddress());
+            handlerContext.setRemoteAddress((InetSocketAddress) ctx.channel().remoteAddress());
+            RpcSeverHandler requestHandler = new RpcSeverHandler(handlerContext);
             RpcResponse response = requestHandler.handle(rpcRequest);
-            if(response == null) {
-                //被拦截器拦截
+            if(response == null) { // 被拦截器拦截
                 return;
             }
             if(ctx.channel().isActive() && ctx.channel().isWritable()) {

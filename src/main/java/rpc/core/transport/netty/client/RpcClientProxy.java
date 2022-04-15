@@ -2,6 +2,7 @@ package rpc.core.transport.netty.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.entity.RpcRequest;
 import rpc.core.common.entity.RpcResponse;
 import rpc.core.common.enumeration.RpcError;
@@ -59,7 +60,7 @@ public class RpcClientProxy<T> implements InvocationHandler {
                 if(completableFuture == null) {
                     return null;
                 }
-                response = completableFuture.get(10, TimeUnit.SECONDS);
+                response = completableFuture.get(RpcContext.ClientRequestTimeOut, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 logger.error(RpcError.REQUEST_TIMEOUT.getMessage());
                 return null;

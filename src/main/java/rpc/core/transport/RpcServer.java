@@ -1,5 +1,7 @@
 package rpc.core.transport;
 
+import rpc.core.provider.ServiceProvider;
+
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 
@@ -14,9 +16,7 @@ public interface RpcServer {
 
     void start();
 
-    <T> void publishService(Method service, String serviceName);
-
-    void deleteService(InetSocketAddress inetSocketAddress, String serviceName);
+    <T> void publishService(Method service, String serviceName, ServiceProvider provider);
 
     void shutdown();
 

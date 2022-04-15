@@ -8,8 +8,11 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.factory.SingletonFactory;
 import rpc.core.common.serializer.CommonSerializer;
+import rpc.core.common.util.TimeUtil;
+import rpc.core.transport.AbstractRpcServer;
 import rpc.core.transport.netty.handler.NettyServerHandler;
 import rpc.core.provider.ServiceProviderImpl;
 import rpc.core.registry.Impl.NacosServiceRegistry;
@@ -18,7 +21,7 @@ import rpc.core.transport.netty.handler.CommonEncode;
 
 import java.util.concurrent.TimeUnit;
 
-public class NettyServer extends AbstractRpcServer{
+public class NettyServer extends AbstractRpcServer {
 
     private final CommonSerializer serializer;
     private EventLoopGroup bossGroup;
@@ -67,12 +70,14 @@ public class NettyServer extends AbstractRpcServer{
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(new IdleStateHandler(100, 100, 100, TimeUnit.SECONDS))
+                            pipeline.addLast(new IdleStateHandler(RpcContext.ServerIdealStateTime, RpcContext.ServerIdealStateTime, RpcContext.ServerIdealStateTime, TimeUnit.SECONDS))
                                     .addLast(new CommonEncode(serializer))
                                     .addLast(new CommonDecode())
                                     .addLast(new NettyServerHandler());
                         }
                     });
+
+            TimeUtil.timerStop();
             ChannelFuture future = serverBootstrap.bind(host, port).sync();
             future.channel().closeFuture().sync();
         } catch (Exception e) {

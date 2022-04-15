@@ -5,7 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rpc.core.common.annotation.RpcFilter;
 import rpc.core.common.annotation.RpcInterceptor;
-import rpc.core.common.entity.RpcContext;
+import rpc.core.common.context.HandlerContext;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.entity.RpcRequest;
 import rpc.core.common.entity.RpcResponse;
 import rpc.core.common.factory.SingletonFactory;
@@ -27,7 +28,13 @@ abstract class AbstractRpcHandler {
     private static Map<String, List<Map.Entry>> entryFilterMap = RpcContext.entryFilterMap;
     private static Map<String, List<Map.Entry>> entryInterceptorMap = RpcContext.entryInterceptorMap;
 
-     void scan() {
+    AbstractRpcHandler(){
+        if(RpcContext.lazyInit) {
+            scan();
+        }
+    }
+
+     private void scan() {
         scanHandler();
     }
 
@@ -40,43 +47,17 @@ abstract class AbstractRpcHandler {
         List<Class<?>> classList = ClassUtil.searchClasses(basePackage, true);
         for (Class<?> clazz : classList) {
             if (clazz.isAnnotationPresent(RpcInterceptor.class)) {
-                String InterceptorServiceName = clazz.getAnnotation(RpcInterceptor.class).interceptorServiceName();
-                int nice = clazz.getAnnotation(RpcInterceptor.class).nice();
-                List<Map.Entry> entries;
-                Object obj;
                 try {
-                    obj = SingletonFactory.getInstance(clazz);
+                    getInterceptor(clazz);
                 } catch (Exception e) {
-                    continue;
+                    logger.warn("实例化 " + clazz.getName() + "时发生错误");
                 }
-                if (entryInterceptorMap.containsKey(InterceptorServiceName)) {
-                    entries = entryInterceptorMap.get(InterceptorServiceName);
-                } else {
-                    entries = new ArrayList<>();
-                }
-
-                Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
-                entries.add(entry);
-                entryInterceptorMap.put(InterceptorServiceName, entries);
             } else if (clazz.isAnnotationPresent(RpcFilter.class)) {
-                String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
-                int nice = clazz.getAnnotation(RpcFilter.class).nice();
-                List<Map.Entry> entries;
-                Object obj;
                 try {
-                    obj = SingletonFactory.getInstance(clazz);
+                    getFilter(clazz);
                 } catch (Exception e) {
-                    continue;
+                    logger.warn("实例化 " + clazz.getName() + "时发生错误");
                 }
-                if (entryFilterMap.containsKey(FilterServiceName)) {
-                    entries = entryFilterMap.get(FilterServiceName);
-                } else {
-                    entries = new ArrayList<>();
-                }
-
-                Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
-                entries.add(entry);
-                entryFilterMap.put(FilterServiceName, entries);
             }
         }
         scanSuccess();
@@ -105,13 +86,13 @@ abstract class AbstractRpcHandler {
     private List<rpc.core.filter.RpcFilter> getSortedFilters(String filterServiceName) {
 
         if (filterServiceName == null || "".equals(filterServiceName) || entryFilterMap.get(filterServiceName) == null)
-            filterServiceName = "RPC_Filter";
+            filterServiceName = RpcContext.DEFAULT_FILTER_NAME;
 
         if (filterMap.containsKey(filterServiceName))
             return filterMap.get(filterServiceName);
 
         List<rpc.core.filter.RpcFilter> ret = new ArrayList<>();
-        List<Map.Entry> filters = entryFilterMap.get("RPC_Filter");
+        List<Map.Entry> filters = entryFilterMap.get(RpcContext.DEFAULT_FILTER_NAME);
 
         if(filters != null) {
             for (Map.Entry entry : filters) {
@@ -124,10 +105,10 @@ abstract class AbstractRpcHandler {
 
 
     // 拦截器
-    boolean doIntercept(RpcRequest request, RpcResponse response, String interceptorServiceName) throws Exception {
-        List<rpc.core.intercepter.RpcInterceptor> interceptors = getSortedInterceptors(interceptorServiceName);
+    boolean doIntercept(RpcRequest request, RpcResponse response, HandlerContext context) throws Exception {
+        List<rpc.core.intercepter.RpcInterceptor> interceptors = getSortedInterceptors(context.getServiceName());
         for (rpc.core.intercepter.RpcInterceptor interceptor : interceptors) {
-            if (!interceptor.preHandle(request, response))
+            if (!interceptor.preHandle(request, response, context))
                 return false;
         }
         return true;
@@ -136,13 +117,13 @@ abstract class AbstractRpcHandler {
     private List<rpc.core.intercepter.RpcInterceptor> getSortedInterceptors(String interceptorServiceName) {
 
         if(interceptorServiceName == null || "".equals(interceptorServiceName) || entryInterceptorMap.get(interceptorServiceName) == null)
-            interceptorServiceName = "RPC_Interceptor";
+            interceptorServiceName = RpcContext.DEFAULT_INTERCEPTOR_NAME;
 
         if(interceptorMap.containsKey(interceptorServiceName))
             return interceptorMap.get(interceptorServiceName);
 
         List<rpc.core.intercepter.RpcInterceptor> ret = new ArrayList<>();
-        List<Map.Entry> filters = entryInterceptorMap.get("RPC_Interceptor");
+        List<Map.Entry> filters = entryInterceptorMap.get(RpcContext.DEFAULT_INTERCEPTOR_NAME);
 
         if(filters != null) {
             for (Map.Entry entry : filters) {
@@ -153,7 +134,41 @@ abstract class AbstractRpcHandler {
         return ret;
     }
 
-    void scanSuccess(){
+    @SuppressWarnings("unchecked")
+    private void getInterceptor(Class<?> clazz) throws Exception {
+        String InterceptorServiceName = clazz.getAnnotation(RpcInterceptor.class).interceptorServiceName();
+        int nice = clazz.getAnnotation(RpcInterceptor.class).nice();
+        List<Map.Entry> entries;
+        Object obj = SingletonFactory.getInstance(clazz);
+        if (entryInterceptorMap.containsKey(InterceptorServiceName)) {
+            entries = entryInterceptorMap.get(InterceptorServiceName);
+        } else {
+            entries = new ArrayList<>();
+        }
+
+        Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
+        entries.add(entry);
+        entryInterceptorMap.put(InterceptorServiceName, entries);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void getFilter(Class<?> clazz) throws Exception {
+        String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
+        int nice = clazz.getAnnotation(RpcFilter.class).nice();
+        List<Map.Entry> entries;
+        Object obj = SingletonFactory.getInstance(clazz);
+        if (entryFilterMap.containsKey(FilterServiceName)) {
+            entries = entryFilterMap.get(FilterServiceName);
+        } else {
+            entries = new ArrayList<>();
+        }
+
+        Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
+        entries.add(entry);
+        entryFilterMap.put(FilterServiceName, entries);
+    }
+
+    private void scanSuccess(){
         for (List<Map.Entry> list : entryFilterMap.values()) {
             list.sort(Comparator.comparingInt(entry -> (int) entry.getKey()));
         }

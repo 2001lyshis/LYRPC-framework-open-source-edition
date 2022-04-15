@@ -15,8 +15,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceProviderImpl.class);
 
-    private static final Map<String, Method> serviceMap = new ConcurrentHashMap<>();
-    private static final Set<String> registeredService = ConcurrentHashMap.newKeySet();
+
+    private   Map<String, Method> serviceMap = new ConcurrentHashMap<>();
+    private   Set<String> registeredService = ConcurrentHashMap.newKeySet();
 
     @Override
     public <T> void addService(Method service, String serviceName) {

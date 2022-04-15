@@ -1,4 +1,4 @@
-package rpc.core.transport.netty.server;
+package rpc.core.transport.netty.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;

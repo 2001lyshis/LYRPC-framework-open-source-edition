@@ -4,14 +4,15 @@ package rpc.core.handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rpc.core.common.entity.RpcContext;
+import rpc.core.common.context.HandlerContext;
+import rpc.core.common.context.RpcContext;
 import rpc.core.common.entity.RpcRequest;
 import rpc.core.common.entity.RpcResponse;
 import rpc.core.common.enumeration.ResponseCode;
 import rpc.core.common.factory.RpcResponseFactory;
 import rpc.core.common.factory.SingletonFactory;
 import rpc.core.provider.ServiceProvider;
-import rpc.core.provider.ServiceProviderImpl;
+
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -27,30 +28,29 @@ import java.lang.reflect.Method;
 public class RpcSeverHandler extends AbstractRpcHandler{
 
     private static final Logger logger = LoggerFactory.getLogger(RpcSeverHandler.class);
-    private static final ServiceProvider serviceProvider;
+    private static HandlerContext context;
+    private static ServiceProvider serviceProvider;
 
-    public RpcSeverHandler() {
-        if(RpcContext.lazyInit) {
-            scan();
-        }
+    public RpcSeverHandler(HandlerContext cxt) {
+        context = cxt;
+
     }
 
-    static {
-        serviceProvider = new ServiceProviderImpl();
-    }
 
 
     public RpcResponse handle(RpcRequest rpcRequest) throws Exception {
-        Method service = serviceProvider.getService(rpcRequest.getInterfaceName() + "@" + rpcRequest.getMethodName());
-
         RpcResponse initResponse = RpcResponseFactory.createResponse(rpcRequest.getRequestId());
 
         // 过滤器和拦截器
         doFilter(rpcRequest, initResponse, rpcRequest.getInterfaceName());
-        if(!doIntercept(rpcRequest, initResponse, rpcRequest.getInterfaceName())) {
+        if(!doIntercept(rpcRequest, initResponse, context)) {
             return null;
         }
-
+        serviceProvider = context.getProvider();
+        if(serviceProvider == null) {
+            serviceProvider = RpcContext.ProviderGroups.get(RpcContext.DEFAULT_PROVIDER_NAME);
+        }
+        Method service = serviceProvider.getService( rpcRequest.getInterfaceName() + "@" + rpcRequest.getMethodName());
 
         Object res = invokeTargetMethod(rpcRequest, service);
 

@@ -8,13 +8,14 @@ public class SingletonFactory {
 
     private static Map<Class, Object> objectMap = new ConcurrentHashMap<>();
 
-    private SingletonFactory() {}
+    private SingletonFactory() {
+    }
 
     public static <T> T getInstance(Class<T> clazz) {
         Object instance = objectMap.get(clazz);
-        if(instance == null) {
+        if (instance == null) {
             synchronized (clazz) {
-                if(instance == null) {
+                if (instance == null) {
                     try {
                         instance = clazz.newInstance();
                         objectMap.put(clazz, instance);

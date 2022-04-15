@@ -9,8 +9,7 @@ public enum SerializerCode {
 
     JSON(0),
     KRYO(1),
-    HESSIAN(2),
-    PROTOBUF(3);
+    HESSIAN(2);
 
     private final int code;
 }
