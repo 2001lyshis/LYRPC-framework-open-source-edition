@@ -136,16 +136,12 @@ abstract class AbstractRpcHandler {
 
     @SuppressWarnings("unchecked")
     private void getInterceptor(Class<?> clazz) throws Exception {
-        String InterceptorServiceName = clazz.getAnnotation(RpcInterceptor.class).interceptorServiceName();
-        int nice = clazz.getAnnotation(RpcInterceptor.class).nice();
-        List<Map.Entry> entries;
         Object obj = SingletonFactory.getInstance(clazz);
-        if (entryInterceptorMap.containsKey(InterceptorServiceName)) {
-            entries = entryInterceptorMap.get(InterceptorServiceName);
-        } else {
-            entries = new ArrayList<>();
-        }
+        String InterceptorServiceName = clazz.getAnnotation(RpcInterceptor.class).interceptorServiceName();
+        InterceptorServiceName = InterceptorServiceName.equals("") ? RpcContext.DEFAULT_INTERCEPTOR_NAME : InterceptorServiceName;
+        int nice = clazz.getAnnotation(RpcInterceptor.class).nice();
 
+        List<Map.Entry> entries = entryInterceptorMap.getOrDefault(InterceptorServiceName, new ArrayList<>());
         Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
         entries.add(entry);
         entryInterceptorMap.put(InterceptorServiceName, entries);
@@ -153,16 +149,12 @@ abstract class AbstractRpcHandler {
 
     @SuppressWarnings("unchecked")
     private void getFilter(Class<?> clazz) throws Exception {
-        String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
-        int nice = clazz.getAnnotation(RpcFilter.class).nice();
-        List<Map.Entry> entries;
         Object obj = SingletonFactory.getInstance(clazz);
-        if (entryFilterMap.containsKey(FilterServiceName)) {
-            entries = entryFilterMap.get(FilterServiceName);
-        } else {
-            entries = new ArrayList<>();
-        }
+        String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
+        FilterServiceName = FilterServiceName.equals("") ? RpcContext.DEFAULT_FILTER_NAME : FilterServiceName;
+        int nice = clazz.getAnnotation(RpcFilter.class).nice();
 
+        List<Map.Entry> entries = entryFilterMap.getOrDefault(FilterServiceName, new ArrayList<>());
         Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
         entries.add(entry);
         entryFilterMap.put(FilterServiceName, entries);

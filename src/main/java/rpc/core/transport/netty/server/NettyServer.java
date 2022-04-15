@@ -77,7 +77,7 @@ public class NettyServer extends AbstractRpcServer {
                         }
                     });
 
-            TimeUtil.timerStop();
+            TimeUtil.serverTimerStop();
             ChannelFuture future = serverBootstrap.bind(host, port).sync();
             future.channel().closeFuture().sync();
         } catch (Exception e) {

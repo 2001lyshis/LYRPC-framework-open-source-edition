@@ -17,7 +17,6 @@ import rpc.core.common.util.TimeUtil;
 import rpc.core.provider.ServiceProvider;
 import rpc.core.provider.ServiceProviderImpl;
 import rpc.core.registry.ServiceRegistry;
-
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -42,7 +41,6 @@ public abstract class AbstractRpcServer implements RpcServer {
         TimeUtil.timerStart();
     }
 
-
     @Override
     public <T> void publishService(Method service, String serviceName, ServiceProvider provider) {
         serviceRegistry.register(serviceName, new InetSocketAddress(host, port));
@@ -51,8 +49,6 @@ public abstract class AbstractRpcServer implements RpcServer {
 
     @Override
     public abstract void shutdown();
-
-
 
     protected void scan(){
         scanService();
@@ -136,15 +132,10 @@ public abstract class AbstractRpcServer implements RpcServer {
     private void getInterceptor(Class<?> clazz) throws Exception {
         Object obj = SingletonFactory.getInstance(clazz);
         String InterceptorServiceName = clazz.getAnnotation(RpcInterceptor.class).interceptorServiceName();
+        InterceptorServiceName = InterceptorServiceName.equals("") ? RpcContext.DEFAULT_INTERCEPTOR_NAME : InterceptorServiceName;
         int nice = clazz.getAnnotation(RpcInterceptor.class).nice();
-        List<Map.Entry> entries;
 
-        if (entryInterceptorMap.containsKey(InterceptorServiceName)) {
-            entries = entryInterceptorMap.get(InterceptorServiceName);
-        } else {
-            entries = new ArrayList<>();
-        }
-
+        List<Map.Entry> entries = entryInterceptorMap.getOrDefault(InterceptorServiceName, new ArrayList<>());
         Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
         entries.add(entry);
         entryInterceptorMap.put(InterceptorServiceName, entries);
@@ -152,15 +143,12 @@ public abstract class AbstractRpcServer implements RpcServer {
 
     @SuppressWarnings("unchecked")
     private void getFilter(Class<?> clazz) throws Exception {
-        String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
-        int nice = clazz.getAnnotation(RpcFilter.class).nice();
-        List<Map.Entry> entries;
         Object obj = SingletonFactory.getInstance(clazz);
-        if (entryFilterMap.containsKey(FilterServiceName)) {
-            entries = entryFilterMap.get(FilterServiceName);
-        } else {
-            entries = new ArrayList<>();
-        }
+        String FilterServiceName = clazz.getAnnotation(RpcFilter.class).filterServiceName();
+        FilterServiceName = FilterServiceName.equals("") ? RpcContext.DEFAULT_FILTER_NAME : FilterServiceName;
+        int nice = clazz.getAnnotation(RpcFilter.class).nice();
+
+        List<Map.Entry> entries = entryFilterMap.getOrDefault(FilterServiceName, new ArrayList<>());
         Map.Entry entry = new AbstractMap.SimpleEntry(nice, obj);
         entries.add(entry);
         entryFilterMap.put(FilterServiceName, entries);
@@ -171,6 +159,7 @@ public abstract class AbstractRpcServer implements RpcServer {
         SingletonFactory.getInstance(clazz);
         Method[] methods = clazz.getDeclaredMethods();
         String providerName = clazz.getAnnotation(RpcService.class).providerName();
+        providerName = providerName.equals("") ? RpcContext.DEFAULT_PROVIDER_NAME : providerName;
         ServiceProvider provider = RpcContext.ProviderGroups.getOrDefault(providerName, new ServiceProviderImpl());
         for(Method method : methods) {
             publishService(method, serviceName + "@" + method.getName(), provider);
@@ -185,6 +174,7 @@ public abstract class AbstractRpcServer implements RpcServer {
                 String serviceName = clazz.getInterfaces()[0].getSimpleName();
                 SingletonFactory.getInstance(clazz);
                 String providerName = method.getAnnotation(RpcService.class).providerName();
+                providerName = providerName.equals("") ? RpcContext.DEFAULT_PROVIDER_NAME : providerName;
                 ServiceProvider provider = RpcContext.ProviderGroups.getOrDefault(providerName, new ServiceProviderImpl());
                 publishService(method, serviceName + "@" + method.getName(), provider);
                 RpcContext.ProviderGroups.putIfAbsent(providerName, provider);

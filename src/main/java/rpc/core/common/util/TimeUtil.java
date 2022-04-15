@@ -11,11 +11,18 @@ public class TimeUtil {
         startCurrentTimeMillis = System.currentTimeMillis();
     }
 
-    public static void timerStop() {
+    public static void serverTimerStop() {
         Long endCurrentTimeMillis = System.currentTimeMillis();
         long res = endCurrentTimeMillis - startCurrentTimeMillis;
         if(res > 0) {
             logger.info("RPC server started by "+ res + " ms");
+        }
+    }
+    public static void timerStop() {
+        Long endCurrentTimeMillis = System.currentTimeMillis();
+        long res = endCurrentTimeMillis - startCurrentTimeMillis;
+        if(res > 0) {
+            logger.info(res + " ms");
         }
     }
 }
